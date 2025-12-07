@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Access Center - Job Summary</title>
+    <style>
+        :root {
+            --primary-blue: #0056b3;
+            --border-gray: #dee2e6;
+            --bg-gray: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #e9ecef;
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* 模拟浏览器/系统界面容器 */
+        .browser-mockup {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        /* 顶部模拟导航栏 */
+        .system-header {
+            background: var(--primary-blue);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .district-name {
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 一个通用的学区Logo占位符 */
+        .district-logo-placeholder {
+            width: 30px; height: 30px; background: white; border-radius: 50%; margin-right: 10px;
+            display: flex; align-items: center; justify-content: center; color: var(--primary-blue); font-weight: 900;
+        }
+
+        .user-nav { font-size: 13px; }
+        .user-nav span { margin-left: 15px; cursor: pointer; opacity: 0.8; }
+
+        /* 模拟面包屑导航 */
+        .breadcrumb {
+            background: #f0f2f5;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border-gray);
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* 主要内容区 */
+        .main-content {
+            padding: 30px;
+        }
+
+        .page-title {
+            font-size: 22px;
+            margin-bottom: 25px;
+            color: #2c3e50;
+            border-bottom: 3px solid var(--primary-blue);
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        /* 模拟标签页切换 */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-gray);
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            color: var(--primary-blue);
+        }
+        .tab.active {
+            border: 1px solid var(--border-gray);
+            border-bottom-color: white;
+            background: white;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: -1px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+
+        /* 数据表格样式 */
+        .data-panel {
+            border: 1px solid var(--border-gray);
+            border-radius: 4px;
+            margin-bottom: 25px;
+        }
+        .panel-header {
+            background: var(--bg-gray);
+            padding: 10px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-gray);
+        }
+        .panel-body { padding: 20px; }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-table th, .info-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .info-table th {
+            width: 30%;
+            color: #666;
+            font-weight: normal;
+            background-color: #fafafa;
+        }
+        .info-table td {
+            font-weight: 600;
+            color: #000;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: inline-block;
+        }
+
+        /* 底部系统信息 */
+        .system-footer {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid var(--border-gray);
+            font-size: 11px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 控制台和打印样式 */
+        .controls {
+            position: fixed; top: 20px; left: 20px; background: white; padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-radius: 5px;
+        }
+        .controls input { display: block; margin: 5px 0 10px; padding: 5px; width: 200px; }
+        .print-btn { background: #28a745; color: white; border: none; padding: 10px 15px; cursor: pointer; width: 100%; }
+
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .controls { display: none !important; }
+            .browser-mockup { box-shadow: none; max-width: 100%; border: none; }
+            .breadcrumb, .user-nav { display: none; } /* 打印时隐藏不必要的导航元素 */
+            .system-header { padding: 10px 20px; background: white !important; color: black !important; border-bottom: 2px solid black; }
+            .district-logo-placeholder { border: 2px solid black; color: black; }
+            /* 确保背景色在打印时显示 (如状态栏的绿色) */
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="browser-mockup">
+    <div class="system-header">
+        <div class="district-name">
+            <div class="district-logo-placeholder">SD</div>
+            Springfield School District - Employee Access Center
+        </div>
+        <div class="user-nav">
+            Welcome, <span id="topName">Sarah J. Connor</span> | My Account | Sign Out
+        </div>
+    </div>
+
+    <div class="breadcrumb">
+        Home > Employee Self Service > Employment > Current Assignment Information
+    </div>
+
+    <div class="main-content">
+        <h1 class="page-title">Current Job Summary & Verification</h1>
+
+        <div class="tabs">
+            <div class="tab active">Assignment Details</div>
+            <div class="tab">Compensation History</div>
+            <div class="tab">Certifications</div>
+        </div>
+
+        <div class="data-panel">
+            <div class="panel-header">Employee Information</div>
+            <div class="panel-body">
+                <table class="info-table">
+                    <tr>
+                        <th>Employee Name:</th>
+                        <td id="mainName" style="font-size: 16px;">Sarah J. Connor</td>
+                    </tr>
+                    <tr>
+                        <th>Employee ID:</th>
+                        <td>E-9928104</td>
+                    </tr>
+                    <tr>
+                        <th>Current Status:</th>
+                        <td><span class="status-active">Active / Active Payroll</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="data-panel">
+            <div class="panel-header">Primary Assignment Details (Academic Year 2025-2026)</div>
+            <div class="panel-body">
+                <table class="info-table">
+                    <tr>
+                        <th>Primary Location:</th>
+                        <td>Springfield North High School</td>
+                    </tr>
+                    <tr>
+                        <th>Position / Job Title:</th>
+                        <td>Faculty - Science Department (FTE 1.0)</td>
+                    </tr>
+                    <tr>
+                        <th>Employee Type:</th>
+                        <td>Certified Faculty / Staff</td>
+                    </tr>
+                    <tr>
+                        <th>Hire Date:</th>
+                        <td>August 15, 2018</td>
+                    </tr>
+                    <tr>
+                        <th>Assignment Dates:</th>
+                        <td>August 20, 2025 - June 10, 2026</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="system-footer">
+        <div>System Report Generated: <span id="currentDate"></span></div>
+        <div>Environment: PROD | Database: MUNIS_PR | Version: 12.4.0.88</div>
+    </div>
+</div>
+
+<script>
+    // 1. 自动设置当前日期 (满足 90天内 要求)
+    const now = new Date();
+    // 使用美式常用格式 MM/DD/YYYY
+    const dateStr = now.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+    }) + " " + now.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
+
+    document.getElementById('currentDate').innerText = dateStr;
+
+    // 2. 实时更新名字
+    function updateName() {
+        const newName = document.getElementById('inName').value;
+        document.getElementById('topName').innerText = newName;
+        document.getElementById('mainName').innerText = newName;
+    }
+</script>
+
+</body>
+</html>

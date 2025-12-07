@@ -1,0 +1,35 @@
+services:
+  tgbot:
+    build: .
+    container_name: sheerid-tgbot
+    restart: unless-stopped
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONUNBUFFERED=1
+      # Telegram Bot 配置
+      - BOT_TOKEN=${BOT_TOKEN}
+      - CHANNEL_USERNAME=${CHANNEL_USERNAME:-pk_oa}
+      - CHANNEL_URL=${CHANNEL_URL:-https://t.me/pk_oa}
+      - ADMIN_USER_ID=${ADMIN_USER_ID}
+      # MySQL配置
+      - MYSQL_HOST=${MYSQL_HOST:-localhost}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER:-tgbot_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-tgbot_verify}
+
+    # 日志持久化
+    volumes:
+      - ./logs:/app/logs
+
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # 网络模式
+    network_mode: bridge
