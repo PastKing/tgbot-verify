@@ -179,7 +179,6 @@ async def verify2_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
             f"已退回 {VERIFY_COST} 积分"
         )
 
-
 async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /verify3 命令 - Spotify Student"""
     user_id = update.effective_user.id
@@ -206,7 +205,6 @@ async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
         )
         return
 
-    # 解析 verificationId
     verification_id = SpotifyVerifier.parse_verification_id(url)
     if not verification_id:
         await update.message.reply_text("无效的 SheerID 链接，请检查后重试。")
@@ -224,14 +222,15 @@ async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
         "📤 正在提交文档..."
     )
 
-    # 使用信号量控制并发
     semaphore = get_verification_semaphore("spotify_student")
 
     try:
+        # Make sure this block is indented correctly
         async with semaphore:
-        verifier = SpotifyVerifier(verification_id)
+            verifier = SpotifyVerifier(verification_id)
             result = await asyncio.to_thread(verifier.verify)
 
+        # All the code below is **outside** the 'async with' block
         db.add_verification(
             user_id,
             "spotify_student",
@@ -254,6 +253,7 @@ async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
                 f"❌ 认证失败：{result.get('message', '未知错误')}\n\n"
                 f"已退回 {VERIFY_COST} 积分"
             )
+
     except Exception as e:
         logger.error("Spotify 验证过程出错: %s", e)
         db.add_balance(user_id, VERIFY_COST)
