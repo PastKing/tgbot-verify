@@ -1,4 +1,4 @@
-"""用户命令处理器"""
+"""User command handlers"""
 import logging
 from typing import Optional
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
-    """处理 /start 命令"""
+    """Handle /start command"""
     if await reject_group_command(update):
         return
 
@@ -27,16 +27,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: 
     username = user.username or ""
     full_name = user.full_name or ""
 
-    # 已初始化直接返回
+    # If already initialized, return immediately
     if db.user_exists(user_id):
         await update.message.reply_text(
-            f"欢迎回来，{full_name}！\n"
-            "您已经初始化过了。\n"
-            "发送 /help 查看可用命令。"
+            f"Welcome back, {full_name}!\n"
+            "You are already registered.\n"
+            "Send /help to view available commands."
         )
         return
 
-    # 邀请参与
+    # Invite handling
     invited_by: Optional[int] = None
     if context.args:
         try:
@@ -46,16 +46,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: 
         except Exception:
             invited_by = None
 
-    # 创建用户
+    # Create user
     if db.create_user(user_id, username, full_name, invited_by):
         welcome_msg = get_welcome_message(full_name, bool(invited_by))
         await update.message.reply_text(welcome_msg)
     else:
-        await update.message.reply_text("注册失败，请稍后重试。")
+        await update.message.reply_text("Registration failed, please try again later.")
 
 
 async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
-    """处理 /about 命令"""
+    """Handle /about command"""
     if await reject_group_command(update):
         return
 
@@ -63,7 +63,7 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: 
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
-    """处理 /help 命令"""
+    """Handle /help command"""
     if await reject_group_command(update):
         return
 
@@ -73,108 +73,108 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: D
 
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
-    """处理 /balance 命令"""
+    """Handle /balance command"""
     if await reject_group_command(update):
         return
 
     user_id = update.effective_user.id
 
     if db.is_user_blocked(user_id):
-        await update.message.reply_text("您已被拉黑，无法使用此功能。")
+        await update.message.reply_text("You are blocked and cannot use this feature.")
         return
 
     user = db.get_user(user_id)
     if not user:
-        await update.message.reply_text("请先使用 /start 注册。")
+        await update.message.reply_text("Please register first using /start.")
         return
 
     await update.message.reply_text(
-        f"💰 积分余额\n\n当前积分：{user['balance']} 分"
+        f"💰 Points Balance\n\nCurrent points: {user['balance']}"
     )
 
 
 async def checkin_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
-    """处理 /qd 签到命令 - 临时禁用"""
+    """Handle /qd check-in command - temporarily disabled"""
     user_id = update.effective_user.id
 
-    # 临时禁用签到功能（修复bug中）
+    # Temporarily disable check-in feature (bugfix in progress)
     # await update.message.reply_text(
-    #     "⚠️ 签到功能临时维护中\n\n"
-    #     "由于发现bug，签到功能暂时关闭，正在修复。\n"
-    #     "预计很快恢复，给您带来不便敬请谅解。\n\n"
-    #     "💡 您可以通过以下方式获取积分：\n"
-    #     "• 邀请好友 /invite（+2积分）\n"
-    #     "• 使用卡密 /use <卡密>"
+    #     "⚠️ Check-in is temporarily under maintenance\n\n"
+    #     "Due to a bug, check-in is temporarily disabled and is being fixed.\n"
+    #     "It will be restored soon. Sorry for the inconvenience.\n\n"
+    #     "💡 You can earn points via:\n"
+    #     "• Invite friends /invite (+2 points)\n"
+    #     "• Redeem code /use <code>"
     # )
     # return
-    
-    # ===== 以下代码已禁用 =====
+
+    # ===== The code below is currently disabled =====
     if db.is_user_blocked(user_id):
-        await update.message.reply_text("您已被拉黑，无法使用此功能。")
+        await update.message.reply_text("You are blocked and cannot use this feature.")
         return
 
     if not db.user_exists(user_id):
-        await update.message.reply_text("请先使用 /start 注册。")
+        await update.message.reply_text("Please register first using /start.")
         return
 
-    # 第1层检查：在命令处理器层面检查
+    # Layer 1 check: handler level
     if not db.can_checkin(user_id):
-        await update.message.reply_text("❌ 今天已经签到过了，明天再来吧。")
+        await update.message.reply_text("❌ You already checked in today. Try again tomorrow.")
         return
 
-    # 第2层检查：在数据库层面执行（SQL原子操作）
+    # Layer 2 check: database layer (SQL atomic operation)
     if db.checkin(user_id):
         user = db.get_user(user_id)
         await update.message.reply_text(
-            f"✅ 签到成功！\n获得积分：+1\n当前积分：{user['balance']} 分"
+            f"✅ Check-in successful!\nPoints earned: +1\nCurrent points: {user['balance']}"
         )
     else:
-        # 如果数据库层面返回False，说明今天已签到（双重保险）
-        await update.message.reply_text("❌ 今天已经签到过了，明天再来吧。")
+        # If database layer returns False, means already checked in today (double protection)
+        await update.message.reply_text("❌ You already checked in today. Try again tomorrow.")
 
 
 async def invite_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
-    """处理 /invite 邀请命令"""
+    """Handle /invite command"""
     if await reject_group_command(update):
         return
 
     user_id = update.effective_user.id
 
     if db.is_user_blocked(user_id):
-        await update.message.reply_text("您已被拉黑，无法使用此功能。")
+        await update.message.reply_text("You are blocked and cannot use this feature.")
         return
 
     if not db.user_exists(user_id):
-        await update.message.reply_text("请先使用 /start 注册。")
+        await update.message.reply_text("Please register first using /start.")
         return
 
     bot_username = context.bot.username
     invite_link = f"https://t.me/{bot_username}?start={user_id}"
 
     await update.message.reply_text(
-        f"🎁 您的专属邀请链接：\n{invite_link}\n\n"
-        "每邀请 1 位成功注册，您将获得 2 积分。"
+        f"🎁 Your personal invite link:\n{invite_link}\n\n"
+        "For each successful registration you invite, you earn 2 points."
     )
 
 
 async def use_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
-    """处理 /use 命令 - 使用卡密"""
+    """Handle /use command - redeem code"""
     if await reject_group_command(update):
         return
 
     user_id = update.effective_user.id
 
     if db.is_user_blocked(user_id):
-        await update.message.reply_text("您已被拉黑，无法使用此功能。")
+        await update.message.reply_text("You are blocked and cannot use this feature.")
         return
 
     if not db.user_exists(user_id):
-        await update.message.reply_text("请先使用 /start 注册。")
+        await update.message.reply_text("Please register first using /start.")
         return
 
     if not context.args:
         await update.message.reply_text(
-            "使用方法: /use <卡密>\n\n示例: /use wandouyu"
+            "Usage: /use <code>\n\nExample: /use wandouyu"
         )
         return
 
@@ -182,15 +182,15 @@ async def use_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Da
     result = db.use_card_key(key_code, user_id)
 
     if result is None:
-        await update.message.reply_text("卡密不存在，请检查后重试。")
+        await update.message.reply_text("Code not found. Please check and try again.")
     elif result == -1:
-        await update.message.reply_text("该卡密已达到使用次数上限。")
+        await update.message.reply_text("This code has reached its maximum usage limit.")
     elif result == -2:
-        await update.message.reply_text("该卡密已过期。")
+        await update.message.reply_text("This code has expired.")
     elif result == -3:
-        await update.message.reply_text("您已经使用过该卡密。")
+        await update.message.reply_text("You have already used this code.")
     else:
         user = db.get_user(user_id)
         await update.message.reply_text(
-            f"卡密使用成功！\n获得积分：{result}\n当前积分：{user['balance']}"
+            f"Code redeemed successfully!\nPoints earned: {result}\nCurrent points: {user['balance']}"
         )

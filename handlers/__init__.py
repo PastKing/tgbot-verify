@@ -1,1 +1,1 @@
-"""命令处理器模块"""
+"""Command handlers module"""
