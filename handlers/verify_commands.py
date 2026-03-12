@@ -229,7 +229,7 @@ async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
 
     try:
         async with semaphore:
-        verifier = SpotifyVerifier(verification_id)
+            verifier = SpotifyVerifier(verification_id)
             result = await asyncio.to_thread(verifier.verify)
 
         db.add_verification(
@@ -324,7 +324,7 @@ async def verify4_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
                 f"已退回 {VERIFY_COST} 积分"
             )
             return
-        
+
         vid = result.get("verification_id", "")
         if not vid:
             db.add_balance(user_id, VERIFY_COST)
@@ -333,7 +333,7 @@ async def verify4_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
                 f"已退回 {VERIFY_COST} 积分"
             )
             return
-        
+
         # 更新消息
         await processing_msg.edit_text(
             f"✅ 文档已提交！\n"
@@ -341,10 +341,10 @@ async def verify4_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
             f"🔍 正在自动获取认证码...\n"
             f"（最多等待20秒）"
         )
-        
+
         # 第2步：自动获取认证码（最多20秒）
         code = await _auto_get_reward_code(vid, max_wait=20, interval=5)
-        
+
         if code:
             # 成功获取
             result_msg = (
@@ -356,9 +356,9 @@ async def verify4_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
             )
             if result.get("redirect_url"):
                 result_msg += f"\n🔗 跳转链接:\n{result['redirect_url']}"
-            
+
             await processing_msg.edit_text(result_msg)
-            
+
             # 保存成功记录
             db.add_verification(
                 user_id,
@@ -378,7 +378,7 @@ async def verify4_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
                 f"`/getV4Code {vid}`\n\n"
                 f"注意：积分已消耗，稍后查询无需再付费"
             )
-            
+
             # 保存待处理记录
             db.add_verification(
                 user_id,
@@ -388,7 +388,7 @@ async def verify4_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
                 "Waiting for review",
                 vid
             )
-            
+
     except Exception as e:
         logger.error("Bolt.new 验证过程出错: %s", e)
         db.add_balance(user_id, VERIFY_COST)
@@ -404,39 +404,39 @@ async def _auto_get_reward_code(
     interval: int = 5
 ) -> Optional[str]:
     """自动获取认证码（轻量级轮询，不影响并发）
-    
+
     Args:
         verification_id: 验证ID
         max_wait: 最大等待时间（秒）
         interval: 轮询间隔（秒）
-        
+
     Returns:
         str: 认证码，如果获取失败返回None
     """
     import time
     start_time = time.time()
     attempts = 0
-    
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         while True:
             elapsed = int(time.time() - start_time)
             attempts += 1
-            
+
             # 检查是否超时
             if elapsed >= max_wait:
                 logger.info(f"自动获取code超时({elapsed}秒)，让用户手动查询")
                 return None
-            
+
             try:
                 # 查询验证状态
                 response = await client.get(
                     f"https://my.sheerid.com/rest/v2/verification/{verification_id}"
                 )
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     current_step = data.get("currentStep")
-                    
+
                     if current_step == "success":
                         # 获取认证码
                         code = data.get("rewardCode") or data.get("rewardData", {}).get("rewardCode")
@@ -448,14 +448,14 @@ async def _auto_get_reward_code(
                         logger.warning(f"审核失败: {data.get('errorIds', [])}")
                         return None
                     # else: pending，继续等待
-                
+
                 # 等待下次轮询
                 await asyncio.sleep(interval)
-                
+
             except Exception as e:
                 logger.warning(f"查询认证码出错: {e}")
                 await asyncio.sleep(interval)
-    
+
     return None
 
 
