@@ -1,5 +1,7 @@
 # SheerID 自动认证机器人 - 部署指南
 
+[English](DEPLOY_EN.md) | 中文
+
 本文档详细说明如何部署 SheerID 自动认证 Telegram 机器人。
 
 ---
