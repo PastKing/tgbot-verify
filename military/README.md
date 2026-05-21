@@ -1,26 +1,26 @@
-# ChatGPT 军人 SheerID 认证思路
+# Gợi ý quy trình xác thực quân nhân SheerID cho ChatGPT
 
-## 📋 概述
+## 📋 Tổng quan
 
-ChatGPT 军人认证流程与普通学生/教师认证不同，需要先执行一个额外的接口来收集军人状态信息，然后再提交个人信息表单。
+Quy trình xác thực quân nhân của ChatGPT khác với xác thực sinh viên/giáo viên thông thường, cần gọi thêm một API để thu thập trạng thái quân nhân trước, rồi mới gửi biểu mẫu thông tin cá nhân.
 
-## 🔄 认证流程
+## 🔄 Quy trình xác thực
 
-### 第一步：收集军人状态 (collectMilitaryStatus)
+### Bước 1: Thu thập trạng thái quân nhân (collectMilitaryStatus)
 
-在提交个人信息表单之前，必须先调用此接口来设置军人状态。
+Trước khi gửi biểu mẫu thông tin cá nhân, phải gọi API này để thiết lập trạng thái quân nhân.
 
-**请求信息**：
+**Thông tin yêu cầu**:
 - **URL**: `https://services.sheerid.com/rest/v2/verification/{verificationId}/step/collectMilitaryStatus`
-- **方法**: `POST`
-- **参数**:
+- **Phương thức**: `POST`
+- **Tham số**:
 ```json
 {
-    "status": "VETERAN" // 总共3个
+    "status": "VETERAN" // Tổng cộng 3 giá trị
 }
 ```
 
-**响应示例**：
+**Ví dụ phản hồi**：
 ```json
 {
     "verificationId": "{verification_id}",
@@ -37,21 +37,21 @@ ChatGPT 军人认证流程与普通学生/教师认证不同，需要先执行�
 }
 ```
 
-**关键字段**：
-- `submissionUrl`: 下一步需要使用的提交URL
-- `currentStep`: 当前步骤，应该变为 `collectInactiveMilitaryPersonalInfo`
+**Trường quan trọng**:
+- `submissionUrl`: URL gửi của bước tiếp theo
+- `currentStep`: bước hiện tại, nên chuyển thành `collectInactiveMilitaryPersonalInfo`
 
 ---
 
-### 第二步：收集非现役军人个人信息 (collectInactiveMilitaryPersonalInfo)
+### Bước 2: Thu thập thông tin cá nhân của quân nhân không tại ngũ (collectInactiveMilitaryPersonalInfo)
 
-使用第一步返回的 `submissionUrl` 提交个人信息。
+Sử dụng `submissionUrl` trả về từ bước 1 để gửi thông tin cá nhân.
 
-**请求信息**：
-- **URL**: 从第一步响应的 `submissionUrl` 获取
-  - 例如: `https://services.sheerid.com/rest/v2/verification/{verificationId}/step/collectInactiveMilitaryPersonalInfo`
-- **方法**: `POST`
-- **参数**:
+**Thông tin yêu cầu**:
+ - **URL**: Lấy từ `submissionUrl` trong phản hồi của bước 1
+     - Ví dụ: `https://services.sheerid.com/rest/v2/verification/{verificationId}/step/collectInactiveMilitaryPersonalInfo`
+ - **Phương thức**: `POST`
+ - **Tham số**:
 ```json
 {
     "firstName": "name",
@@ -76,23 +76,23 @@ ChatGPT 军人认证流程与普通学生/教师认证不同，需要先执行�
 }
 ```
 
-**关键字段说明**：
-- `firstName`: 名字
-- `lastName`: 姓氏
-- `birthDate`: 出生日期，格式 `YYYY-MM-DD`
-- `email`: 邮箱地址
-- `phoneNumber`: 电话号码（可为空）
-- `organization`: 军队组织信息（见下方组织列表）
-- `dischargeDate`: 退役日期，格式 `YYYY-MM-DD`
-- `locale`: 语言区域，默认 `en-US`
-- `country`: 国家代码，默认 `US`
-- `metadata`: 元数据信息（包含隐私政策同意文本等）
+**Giải thích các trường quan trọng**:
+- `firstName`: tên
+- `lastName`: họ
+- `birthDate`: ngày sinh, định dạng `YYYY-MM-DD`
+- `email`: địa chỉ email
+- `phoneNumber`: số điện thoại (có thể để trống)
+- `organization`: thông tin tổ chức quân đội (xem danh sách bên dưới)
+- `dischargeDate`: ngày xuất ngũ, định dạng `YYYY-MM-DD`
+- `locale`: vùng ngôn ngữ, mặc định `en-US`
+- `country`: mã quốc gia, mặc định `US`
+- `metadata`: dữ liệu metadata (bao gồm nội dung đồng ý chính sách quyền riêng tư, v.v.)
 
 ---
 
-## 🎖️ 军队组织列表 (Organization)
+## 🎖️ Danh sách tổ chức quân đội (Organization)
 
-以下是可用的军队组织选项：
+Các tùy chọn tổ chức quân đội khả dụng:
 
 ```json
 [
@@ -153,32 +153,32 @@ ChatGPT 军人认证流程与普通学生/教师认证不同，需要先执行�
 ]
 ```
 
-**组织ID映射**：
-- `4070` - Army (陆军)
-- `4073` - Air Force (空军)
-- `4072` - Navy (海军)
-- `4071` - Marine Corps (海军陆战队)
-- `4074` - Coast Guard (海岸警卫队)
-- `4544268` - Space Force (太空军)
+**Ánh xạ ID tổ chức**:
+- `4070` - Army (Lục quân)
+- `4073` - Air Force (Không quân)
+- `4072` - Navy (Hải quân)
+- `4071` - Marine Corps (Thủy quân lục chiến)
+- `4074` - Coast Guard (Tuần duyên)
+- `4544268` - Space Force (Lực lượng vũ trụ)
 
 ---
 
-## 🔑 实现要点
+## 🔑 Điểm cần triển khai
 
-1. **必须按顺序执行**：必须先调用 `collectMilitaryStatus`，获取 `submissionUrl` 后，再调用 `collectInactiveMilitaryPersonalInfo`
-2. **组织信息**：`organization` 字段需要包含 `id` 和 `name`，可以从上述列表中随机选择或让用户选择
-3. **日期格式**：`birthDate` 和 `dischargeDate` 必须使用 `YYYY-MM-DD` 格式
-4. **元数据**：`metadata` 字段中的 `submissionOptIn` 包含隐私政策同意文本，需要从原始请求中提取或构造
+1. **Phải thực hiện theo đúng thứ tự**: trước hết gọi `collectMilitaryStatus`, lấy `submissionUrl` rồi mới gọi `collectInactiveMilitaryPersonalInfo`
+2. **Thông tin tổ chức**: trường `organization` cần có `id` và `name`, có thể chọn ngẫu nhiên từ danh sách trên hoặc cho người dùng chọn
+3. **Định dạng ngày**: `birthDate` và `dischargeDate` phải dùng định dạng `YYYY-MM-DD`
+4. **Metadata**: trường `submissionOptIn` trong `metadata` chứa nội dung đồng ý chính sách riêng tư, cần trích xuất hoặc tự dựng từ request gốc
 
 ---
 
-## 📝 待实现功能
+## 📝 Tính năng cần triển khai
 
-- [ ] 实现 `collectMilitaryStatus` 接口调用
-- [ ] 实现 `collectInactiveMilitaryPersonalInfo` 接口调用
-- [ ] 添加军队组织选择逻辑
-- [ ] 生成符合要求的个人信息（姓名、出生日期、邮箱等）
-- [ ] 生成退役日期（需要合理的时间范围）
-- [ ] 处理元数据信息（从原始请求中提取或构造）
-- [ ] 集成到主机器人命令系统（如 `/verify6`）
+- [ ] Triển khai gọi API `collectMilitaryStatus`
+- [ ] Triển khai gọi API `collectInactiveMilitaryPersonalInfo`
+- [ ] Thêm logic chọn tổ chức quân đội
+- [ ] Tạo thông tin cá nhân đúng yêu cầu (tên, ngày sinh, email, v.v.)
+- [ ] Tạo ngày xuất ngũ (trong phạm vi hợp lý)
+- [ ] Xử lý thông tin metadata (trích xuất hoặc dựng từ request gốc)
+- [ ] Tích hợp vào hệ thống lệnh chính của bot (ví dụ `/verify6`)
 

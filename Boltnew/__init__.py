@@ -1,1 +1,1 @@
-"""Bolt.new Teacher SheerID 认证模块"""
+"""Mô-đun xác thực SheerID Bolt.new Teacher"""

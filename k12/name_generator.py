@@ -1,9 +1,9 @@
-"""随机名字生成器"""
+"""Bộ tạo tên ngẫu nhiên"""
 import random
 
 
 class NameGenerator:
-    """英文名字生成器"""
+    """Bộ tạo tên tiếng Anh"""
     
     ROOTS = {
         'prefixes': ['Al', 'Bri', 'Car', 'Dan', 'El', 'Fer', 'Gar', 'Har', 'Jes', 'Kar', 
@@ -35,7 +35,7 @@ class NameGenerator:
     
     @classmethod
     def _generate_component(cls, pattern):
-        """根据模式生成名字组件"""
+        """Tạo thành phần tên theo mẫu"""
         components = []
         for part in pattern:
             if part == 'prefix':
@@ -61,16 +61,16 @@ class NameGenerator:
     
     @classmethod
     def _format_name(cls, name):
-        """格式化名字（首字母大写）"""
+        """Định dạng tên (viết hoa chữ cái đầu)"""
         return name.capitalize()
     
     @classmethod
     def generate(cls):
         """
-        生成随机英文名字
+        Tạo ngẫu nhiên tên tiếng Anh
         
         Returns:
-            dict: 包含 first_name, last_name, full_name
+            dict: Chứa first_name, last_name, full_name
         """
         first_name_pattern = random.choice(cls.PATTERNS['first_name'])
         last_name_pattern = random.choice(cls.PATTERNS['last_name'])
@@ -87,10 +87,10 @@ class NameGenerator:
 
 def generate_email():
     """
-    生成随机邮箱（教师使用常见邮箱）
+    Tạo email ngẫu nhiên (dạng email thường dùng cho giáo viên)
 
     Returns:
-        str: 邮箱地址
+        str: Địa chỉ email
     """
     name = NameGenerator.generate()
     first_name = name['first_name'].lower()
@@ -103,10 +103,10 @@ def generate_email():
 
 def generate_birth_date():
     """
-    生成随机生日（教师年龄范围 1970-1990）
+    Tạo ngày sinh ngẫu nhiên (độ tuổi giáo viên 1970-1990)
 
     Returns:
-        str: YYYY-MM-DD 格式的日期
+        str: Ngày theo định dạng YYYY-MM-DD
     """
     year = random.randint(1970, 1990)
     month = str(random.randint(1, 12)).zfill(2)

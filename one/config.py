@@ -1,14 +1,14 @@
-# SheerID 验证配置文件
+# File cấu hình xác thực SheerID
 
-# SheerID API 配置
+# Cấu hình SheerID API
 PROGRAM_ID = '67c8c14f5f17a83b745e3f82'
 SHEERID_BASE_URL = 'https://services.sheerid.com'
 MY_SHEERID_URL = 'https://my.sheerid.com'
 
-# 文件大小限制
+# Giới hạn kích thước tệp
 MAX_FILE_SIZE = 1 * 1024 * 1024  # 1MB
 
-# 学校配置 - Pennsylvania State University 多校区
+# Cấu hình trường - nhiều cơ sở của Pennsylvania State University
 SCHOOLS = {
     '2565': {
         'id': 2565,
@@ -132,11 +132,11 @@ SCHOOLS = {
     }
 }
 
-# 默认学校
+# Trường mặc định
 DEFAULT_SCHOOL_ID = '2565'
 
-# UTM 参数（营销追踪参数）
-# 如果 URL 中没有这些参数，会自动添加
+# Tham số UTM (tham số theo dõi marketing)
+# Nếu URL không có các tham số này, chúng sẽ được tự động thêm vào
 DEFAULT_UTM_PARAMS = {
     'utm_source': 'gemini',
     'utm_medium': 'paid_media',

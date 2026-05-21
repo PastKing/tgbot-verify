@@ -1,1 +1,1 @@
-"""Gemini One Pro SheerID 认证模块"""
+"""Mô-đun xác thực SheerID Gemini One Pro"""

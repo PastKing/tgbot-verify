@@ -1,15 +1,16 @@
-"""SheerID 教师验证主程序（Bolt.now）"""
-import re
-import random
+"""Mô-đun xác thực SheerID giáo viên cho Bolt.new"""
 import logging
-import httpx
+import random
+import re
 from typing import Dict, Optional, Tuple
+from urllib.parse import parse_qs, urlparse
+
+import httpx
 
 from . import config
-from .name_generator import NameGenerator, generate_birth_date
 from .img_generator import generate_images, generate_psu_email
+from .name_generator import NameGenerator, generate_birth_date
 
-# 配置日志
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] [%(levelname)s] %(message)s',
@@ -19,11 +20,11 @@ logger = logging.getLogger(__name__)
 
 
 class SheerIDVerifier:
-    """SheerID 教师身份验证器"""
+    """Trình xác thực giáo viên SheerID."""
 
     def __init__(self, install_page_url: str, verification_id: Optional[str] = None):
         self.install_page_url = self.normalize_url(install_page_url)
-        self.verification_id = verification_id
+        self.verification_id = verification_id or self.parse_verification_id(self.install_page_url)
         self.external_user_id = self.parse_external_user_id(self.install_page_url)
         self.device_fingerprint = self._generate_device_fingerprint()
         self.http_client = httpx.Client(timeout=30.0)
@@ -39,8 +40,8 @@ class SheerIDVerifier:
 
     @staticmethod
     def normalize_url(url: str) -> str:
-        """规范化 URL（保留原样，兼容现有接口）"""
-        return url
+        """Chuẩn hóa URL đầu vào nhưng giữ nguyên tham số gốc."""
+        return url.strip()
 
     @staticmethod
     def parse_verification_id(url: str) -> Optional[str]:
@@ -51,13 +52,18 @@ class SheerIDVerifier:
 
     @staticmethod
     def parse_external_user_id(url: str) -> Optional[str]:
-        match = re.search(r"externalUserId=([^&]+)", url, re.IGNORECASE)
+        parsed = urlparse(url)
+        query_external_user_id = parse_qs(parsed.query).get("externalUserId")
+        if query_external_user_id:
+            return query_external_user_id[0]
+
+        match = re.search(r"externalUserId=([^&?#/]+)", url, re.IGNORECASE)
         if match:
             return match.group(1)
         return None
 
     def create_verification(self) -> str:
-        """通过 installPageUrl 申请新的 verificationId"""
+        """Tạo `verificationId` mới từ `installPageUrl`."""
         body = {
             "programId": config.PROGRAM_ID,
             "installPageUrl": self.install_page_url,
@@ -66,31 +72,33 @@ class SheerIDVerifier:
             "POST", f"{config.MY_SHEERID_URL}/rest/v2/verification/", body
         )
         if status != 200 or not isinstance(data, dict) or not data.get("verificationId"):
-            raise Exception(f"创建 verification 失败 (状态码 {status}): {data}")
+            raise Exception(f"Tạo verification thất bại (mã trạng thái {status}): {data}")
 
         self.verification_id = data["verificationId"]
-        logger.info(f"✅ 获取 verificationId: {self.verification_id}")
+        logger.info(f"✅ Đã lấy verificationId: {self.verification_id}")
         return self.verification_id
 
     def _sheerid_request(
         self, method: str, url: str, body: Optional[Dict] = None
     ) -> Tuple[Dict, int]:
-        """发送 SheerID API 请求"""
-        headers = {
-            "Content-Type": "application/json",
-        }
+        """Gửi yêu cầu đến API SheerID."""
+        headers = {"Content-Type": "application/json"}
 
-        response = self.http_client.request(
-            method=method, url=url, json=body, headers=headers
-        )
         try:
-            data = response.json()
-        except Exception:
-            data = response.text
-        return data, response.status_code
+            response = self.http_client.request(
+                method=method, url=url, json=body, headers=headers
+            )
+            try:
+                data = response.json()
+            except Exception:
+                data = response.text
+            return data, response.status_code
+        except Exception as e:
+            logger.error(f"Yêu cầu SheerID thất bại: {e}")
+            raise
 
     def _upload_to_s3(self, upload_url: str, img_data: bytes) -> bool:
-        """上传 PNG 到 S3"""
+        """Tải PNG lên S3."""
         try:
             headers = {"Content-Type": "image/png"}
             response = self.http_client.put(
@@ -98,7 +106,7 @@ class SheerIDVerifier:
             )
             return 200 <= response.status_code < 300
         except Exception as e:
-            logger.error(f"S3 上传失败: {e}")
+            logger.error(f"Tải lên S3 thất bại: {e}")
             return False
 
     def verify(
@@ -109,7 +117,7 @@ class SheerIDVerifier:
         birth_date: str = None,
         school_id: str = None,
     ) -> Dict:
-        """执行教师验证流程"""
+        """Thực thi quy trình xác thực giáo viên."""
         try:
             current_step = "initial"
 
@@ -129,25 +137,23 @@ class SheerIDVerifier:
                 self.external_user_id = str(random.randint(1000000, 9999999))
 
             if not self.verification_id:
-                logger.info("申请新的 verificationId ...")
+                logger.info("Đang xin verificationId mới...")
                 self.create_verification()
 
-            logger.info(f"教师信息: {first_name} {last_name}")
-            logger.info(f"邮箱: {email}")
-            logger.info(f"学校: {school['name']}")
-            logger.info(f"生日: {birth_date}")
-            logger.info(f"验证 ID: {self.verification_id}")
+            logger.info(f"Thông tin giáo viên: {first_name} {last_name}")
+            logger.info(f"Email: {email}")
+            logger.info(f"Trường: {school['name']}")
+            logger.info(f"Ngày sinh: {birth_date}")
+            logger.info(f"Verification ID: {self.verification_id}")
 
-            # 生成教师 PNG
-            logger.info("步骤 1/5: 生成教师 PNG 文档...")
+            logger.info("Bước 1/5: Tạo tài liệu PNG giáo viên...")
             assets = generate_images(first_name, last_name, school_id)
             for asset in assets:
                 logger.info(
-                    f"  - {asset['file_name']} 大小: {len(asset['data'])/1024:.2f}KB"
+                    f"  - {asset['file_name']} ({len(asset['data']) / 1024:.2f}KB)"
                 )
 
-            # 提交教师信息
-            logger.info("步骤 2/5: 提交教师信息...")
+            logger.info("Bước 2/5: Gửi thông tin giáo viên...")
             step2_body = {
                 "firstName": first_name,
                 "lastName": last_name,
@@ -178,30 +184,32 @@ class SheerIDVerifier:
             )
 
             if step2_status != 200:
-                raise Exception(f"步骤 2 失败 (状态码 {step2_status}): {step2_data}")
+                raise Exception(f"Bước 2 thất bại (mã trạng thái {step2_status}): {step2_data}")
             if isinstance(step2_data, dict) and step2_data.get("currentStep") == "error":
                 error_msg = ", ".join(step2_data.get("errorIds", ["Unknown error"]))
-                raise Exception(f"步骤 2 错误: {error_msg}")
+                raise Exception(f"Bước 2 lỗi: {error_msg}")
 
-            logger.info(f"✅ 步骤 2 完成: {getattr(step2_data, 'get', lambda k, d=None: d)('currentStep')}")
             current_step = (
-                step2_data.get("currentStep", current_step) if isinstance(step2_data, dict) else current_step
+                step2_data.get("currentStep", current_step)
+                if isinstance(step2_data, dict)
+                else current_step
             )
+            logger.info(f"✅ Bước 2 hoàn tất: {current_step}")
 
-            # 跳过 SSO（如需要）
             if current_step in ["sso", "collectTeacherPersonalInfo"]:
-                logger.info("步骤 3/5: 跳过 SSO 验证...")
+                logger.info("Bước 3/5: Bỏ qua xác thực SSO...")
                 step3_data, _ = self._sheerid_request(
                     "DELETE",
                     f"{config.SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/sso",
                 )
-                logger.info(f"✅ 步骤 3 完成: {getattr(step3_data, 'get', lambda k, d=None: d)('currentStep')}")
                 current_step = (
-                    step3_data.get("currentStep", current_step) if isinstance(step3_data, dict) else current_step
+                    step3_data.get("currentStep", current_step)
+                    if isinstance(step3_data, dict)
+                    else current_step
                 )
+                logger.info(f"✅ Bước 3 hoàn tất: {current_step}")
 
-            # 请求上传并上传文档
-            logger.info("步骤 4/5: 请求上传 URL ...")
+            logger.info("Bước 4/5: Yêu cầu đường dẫn tải lên...")
             step4_body = {
                 "files": [
                     {
@@ -218,27 +226,28 @@ class SheerIDVerifier:
                 step4_body,
             )
             if step4_status != 200 or not isinstance(step4_data, dict) or not step4_data.get("documents"):
-                raise Exception(f"未能获取上传 URL: {step4_data}")
+                raise Exception(f"Không lấy được URL tải lên: {step4_data}")
 
             documents = step4_data["documents"]
             if len(documents) != len(assets):
-                raise Exception("返回的上传任务数量与文件数量不匹配")
+                raise Exception("Số tác vụ tải lên không khớp với số tệp")
 
             for doc, asset in zip(documents, assets):
                 upload_url = doc.get("uploadUrl")
                 if not upload_url:
-                    raise Exception("缺少上传 URL")
+                    raise Exception("Thiếu URL tải lên")
                 if not self._upload_to_s3(upload_url, asset["data"]):
-                    raise Exception(f"S3 上传失败: {asset['file_name']}")
-                logger.info(f"✅ 已上传 {asset['file_name']}")
+                    raise Exception(f"Tải lên S3 thất bại: {asset['file_name']}")
+                logger.info(f"✅ Đã tải lên {asset['file_name']}")
 
             step6_data, _ = self._sheerid_request(
                 "POST",
                 f"{config.SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/completeDocUpload",
             )
-            logger.info(f"✅ 文档提交完成: {getattr(step6_data, 'get', lambda k, d=None: d)('currentStep')}")
+            logger.info(
+                f"✅ Gửi tài liệu hoàn tất: {getattr(step6_data, 'get', lambda k, d=None: d)('currentStep')}"
+            )
 
-            # 获取最终状态（包含 rewardCode）
             final_status, _ = self._sheerid_request(
                 "GET",
                 f"{config.MY_SHEERID_URL}/rest/v2/verification/{self.verification_id}",
@@ -247,47 +256,51 @@ class SheerIDVerifier:
             if isinstance(final_status, dict):
                 reward_code = final_status.get("rewardCode") or final_status.get("rewardData", {}).get("rewardCode")
 
+            pending = True
+            redirect_url = None
+            if isinstance(final_status, dict):
+                pending = final_status.get("currentStep") != "success"
+                redirect_url = final_status.get("redirectUrl")
+
             return {
                 "success": True,
-                "pending": final_status.get("currentStep") != "success" if isinstance(final_status, dict) else True,
-                "message": "文档已提交，等待审核"
-                if not isinstance(final_status, dict) or final_status.get("currentStep") != "success"
-                else "验证成功",
+                "pending": pending,
+                "message": "Tài liệu đã được gửi, đang chờ duyệt" if pending else "Xác thực thành công",
                 "verification_id": self.verification_id,
-                "redirect_url": final_status.get("redirectUrl") if isinstance(final_status, dict) else None,
+                "redirect_url": redirect_url,
                 "reward_code": reward_code,
                 "status": final_status,
             }
 
         except Exception as e:
-            logger.error(f"❌ 验证失败: {e}")
+            logger.error(f"❌ Xác thực thất bại: {e}")
             return {"success": False, "message": str(e), "verification_id": self.verification_id}
 
 
 def main():
-    """主函数 - 命令行界面"""
+    """Hàm chính - giao diện dòng lệnh."""
     import sys
 
     print("=" * 60)
-    print("SheerID 教师身份验证工具 (Python版)")
+    print("Công cụ xác thực danh tính giáo viên SheerID (bản Python)")
     print("=" * 60)
     print()
 
     if len(sys.argv) > 1:
         url = sys.argv[1]
     else:
-        url = input("请输入 SheerID 验证入口链接 (含 externalUserId): ").strip()
+        url = input("Vui lòng nhập URL xác thực SheerID (có externalUserId): ").strip()
 
     if not url:
-        print("❌ 错误: 未提供 URL")
+        print("❌ Lỗi: chưa cung cấp URL")
         sys.exit(1)
 
     verification_id = SheerIDVerifier.parse_verification_id(url)
     verifier = SheerIDVerifier(url, verification_id=verification_id)
 
-    print(f"👉 使用链接: {verifier.install_page_url}")
+    print(f"👉 Đường dẫn sử dụng: {verifier.install_page_url}")
     if verifier.verification_id:
-        print(f"已解析 verificationId: {verifier.verification_id}")
+        print(f"Đã phân tích được verificationId: {verifier.verification_id}")
     if verifier.external_user_id:
         print(f"externalUserId: {verifier.external_user_id}")
     print()
@@ -296,14 +309,14 @@ def main():
 
     print()
     print("=" * 60)
-    print("验证结果:")
+    print("Kết quả xác thực:")
     print("=" * 60)
-    print(f"状态: {'✅ 成功' if result['success'] else '❌ 失败'}")
-    print(f"消息: {result['message']}")
+    print(f"Trạng thái: {'✅ Thành công' if result['success'] else '❌ Thất bại'}")
+    print(f"Thông báo: {result['message']}")
     if result.get("reward_code"):
-        print(f"优惠码: {result['reward_code']}")
+        print(f"Mã ưu đãi: {result['reward_code']}")
     if result.get("redirect_url"):
-        print(f"跳转 URL: {result['redirect_url']}")
+        print(f"URL chuyển hướng: {result['redirect_url']}")
     print("=" * 60)
 
     return 0 if result["success"] else 1

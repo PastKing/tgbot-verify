@@ -20,7 +20,7 @@
             color: #333;
         }
 
-        /* 模拟浏览器/系统界面容器 */
+        /* Mô phỏng giao diện trình duyệt/hệ thống */
         .browser-mockup {
             max-width: 1000px;
             margin: 0 auto;
@@ -30,7 +30,7 @@
             overflow: hidden;
         }
 
-        /* 顶部模拟导航栏 */
+        /* Thanh điều hướng giả lập phía trên */
         .system-header {
             background: var(--primary-blue);
             color: white;
@@ -47,7 +47,7 @@
             align-items: center;
         }
 
-        /* 一个通用的学区Logo占位符 */
+        /* Vị trí giữ chỗ logo học khu chung */
         .district-logo-placeholder {
             width: 30px; height: 30px; background: white; border-radius: 50%; margin-right: 10px;
             display: flex; align-items: center; justify-content: center; color: var(--primary-blue); font-weight: 900;
@@ -56,7 +56,7 @@
         .user-nav { font-size: 13px; }
         .user-nav span { margin-left: 15px; cursor: pointer; opacity: 0.8; }
 
-        /* 模拟面包屑导航 */
+        /* Mô phỏng breadcrumb (điều hướng) */
         .breadcrumb {
             background: #f0f2f5;
             padding: 10px 20px;
@@ -65,7 +65,7 @@
             font-size: 12px;
         }
 
-        /* 主要内容区 */
+        /* Khu vực nội dung chính */
         .main-content {
             padding: 30px;
         }
@@ -79,7 +79,7 @@
             display: inline-block;
         }
 
-        /* 模拟标签页切换 */
+        /* Mô phỏng chuyển tab */
         .tabs {
             display: flex;
             border-bottom: 1px solid var(--border-gray);
@@ -102,7 +102,7 @@
             border-top-right-radius: 4px;
         }
 
-        /* 数据表格样式 */
+        /* Kiểu bảng dữ liệu */
         .data-panel {
             border: 1px solid var(--border-gray);
             border-radius: 4px;
@@ -145,7 +145,7 @@
             display: inline-block;
         }
 
-        /* 底部系统信息 */
+        /* Thông tin hệ thống phía dưới */
         .system-footer {
             padding: 15px 30px;
             background: #f8f9fa;
@@ -156,7 +156,7 @@
             justify-content: space-between;
         }
 
-        /* 控制台和打印样式 */
+        /* Bảng điều khiển và kiểu in */
         .controls {
             position: fixed; top: 20px; left: 20px; background: white; padding: 15px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-radius: 5px;
@@ -168,10 +168,10 @@
             body { background: white; padding: 0; margin: 0; }
             .controls { display: none !important; }
             .browser-mockup { box-shadow: none; max-width: 100%; border: none; }
-            .breadcrumb, .user-nav { display: none; } /* 打印时隐藏不必要的导航元素 */
+            .breadcrumb, .user-nav { display: none; } /* Khi in ẩn các phần tử điều hướng không cần thiết */
             .system-header { padding: 10px 20px; background: white !important; color: black !important; border-bottom: 2px solid black; }
             .district-logo-placeholder { border: 2px solid black; color: black; }
-            /* 确保背景色在打印时显示 (如状态栏的绿色) */
+            /* Đảm bảo màu nền hiển thị khi in (ví dụ màu trạng thái) */
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
@@ -259,9 +259,9 @@
 </div>
 
 <script>
-    // 1. 自动设置当前日期 (满足 90天内 要求)
+    // 1. Tự động đặt ngày hiện tại (đảm bảo trong 90 ngày yêu cầu)
     const now = new Date();
-    // 使用美式常用格式 MM/DD/YYYY
+    // Sử dụng định dạng phổ biến US MM/DD/YYYY
     const dateStr = now.toLocaleDateString('en-US', {
         month: '2-digit',
         day: '2-digit',
@@ -270,7 +270,7 @@
 
     document.getElementById('currentDate').innerText = dateStr;
 
-    // 2. 实时更新名字
+    // 2. Cập nhật tên theo thời gian thực
     function updateName() {
         const newName = document.getElementById('inName').value;
         document.getElementById('topName').innerText = newName;

@@ -1,11 +1,11 @@
-"""SheerID 教师验证主程序"""
+"""Chương trình chính xác thực giáo viên SheerID"""
 import re
 import random
 import logging
 import httpx
 from typing import Dict, Optional, Tuple
 
-# 支持既作为包导入又直接脚本运行
+# Hỗ trợ vừa import như package vừa chạy trực tiếp như script
 try:
     from . import config  # type: ignore
     from .name_generator import NameGenerator, generate_email, generate_birth_date  # type: ignore
@@ -15,7 +15,7 @@ except ImportError:
     from name_generator import NameGenerator, generate_email, generate_birth_date  # type: ignore
     from img_generator import generate_teacher_pdf, generate_teacher_png  # type: ignore
 
-# 导入配置常量
+# Nhập các hằng cấu hình
 PROGRAM_ID = config.PROGRAM_ID
 SHEERID_BASE_URL = config.SHEERID_BASE_URL
 MY_SHEERID_URL = config.MY_SHEERID_URL
@@ -23,7 +23,7 @@ SCHOOLS = config.SCHOOLS
 DEFAULT_SCHOOL_ID = config.DEFAULT_SCHOOL_ID
 
 
-# 配置日志
+# Cấu hình logging
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] [%(levelname)s] %(message)s',
@@ -33,38 +33,38 @@ logger = logging.getLogger(__name__)
 
 
 class SheerIDVerifier:
-    """SheerID 教师身份验证器"""
+    """Bộ xác thực giáo viên SheerID"""
 
     def __init__(self, verification_id: str):
         """
-        初始化验证器
+        Khởi tạo bộ xác thực
 
         Args:
-            verification_id: SheerID 验证 ID
+            verification_id: Verification ID của SheerID
         """
         self.verification_id = verification_id
         self.device_fingerprint = self._generate_device_fingerprint()
         self.http_client = httpx.Client(timeout=30.0)
 
     def __del__(self):
-        """清理 HTTP 客户端"""
+        """Dọn dẹp client HTTP"""
         if hasattr(self, 'http_client'):
             self.http_client.close()
 
     @staticmethod
     def _generate_device_fingerprint() -> str:
-        """生成设备指纹"""
+        """Tạo device fingerprint"""
         chars = '0123456789abcdef'
         return ''.join(random.choice(chars) for _ in range(32))
 
     @staticmethod
     def normalize_url(url: str) -> str:
-        """规范化 URL"""
+        """Chuẩn hoá URL"""
         return url
 
     @staticmethod
     def parse_verification_id(url: str) -> Optional[str]:
-        """从 URL 中解析验证 ID"""
+        """Phân tích verification ID từ URL"""
         match = re.search(r'verificationId=([a-f0-9]+)', url, re.IGNORECASE)
         if match:
             return match.group(1)
@@ -73,7 +73,7 @@ class SheerIDVerifier:
     def _sheerid_request(self, method: str, url: str,
                          body: Optional[Dict] = None) -> Tuple[Dict, int]:
         """
-        发送 SheerID API 请求
+        Gửi yêu cầu đến API SheerID
         """
         headers = {
             'Content-Type': 'application/json',
@@ -94,12 +94,12 @@ class SheerIDVerifier:
 
             return data, response.status_code
         except Exception as e:
-            logger.error(f"SheerID 请求失败: {e}")
+            logger.error(f"Yêu cầu SheerID thất bại: {e}")
             raise
 
     def _upload_to_s3(self, upload_url: str, content: bytes, mime_type: str) -> bool:
         """
-        上传文件到 S3
+        Tải file lên S3
         """
         try:
             headers = {
@@ -113,7 +113,7 @@ class SheerIDVerifier:
             )
             return 200 <= response.status_code < 300
         except Exception as e:
-            logger.error(f"S3 上传失败: {e}")
+            logger.error(f"Tải lên S3 thất bại: {e}")
             return False
 
     def verify(self, first_name: str = None, last_name: str = None,
@@ -121,12 +121,12 @@ class SheerIDVerifier:
                school_id: str = None,
                hcaptcha_token: str = None, turnstile_token: str = None) -> Dict:
         """
-        执行完整的验证流程，移除状态轮询以减少耗时
+        Thực hiện toàn bộ quy trình xác thực, loại bỏ việc polling trạng thái để giảm thời gian chờ
         """
         try:
             current_step = 'initial'
 
-            # 生成教师信息
+            # Tạo thông tin giáo viên
             if not first_name or not last_name:
                 name = NameGenerator.generate()
                 first_name = name['first_name']
@@ -141,22 +141,22 @@ class SheerIDVerifier:
             if not birth_date:
                 birth_date = generate_birth_date()
 
-            logger.info(f"教师信息: {first_name} {last_name}")
-            logger.info(f"邮箱: {email}")
-            logger.info(f"学校: {school['name']}")
-            logger.info(f"生日: {birth_date}")
-            logger.info(f"验证 ID: {self.verification_id}")
+            logger.info(f"Thông tin giáo viên: {first_name} {last_name}")
+            logger.info(f"Email: {email}")
+            logger.info(f"Trường: {school['name']}")
+            logger.info(f"Ngày sinh: {birth_date}")
+            logger.info(f"Verification ID: {self.verification_id}")
 
-            # 生成教师证明 PDF + PNG
-            logger.info("步骤 1/4: 生成教师证明 PDF 和 PNG...")
+            # Tạo giấy tờ chứng minh giáo viên PDF + PNG
+            logger.info("Bước 1/4: Tạo PDF và PNG chứng minh giáo viên...")
             pdf_data = generate_teacher_pdf(first_name, last_name)
             png_data = generate_teacher_png(first_name, last_name)
             pdf_size = len(pdf_data)
             png_size = len(png_data)
-            logger.info(f"✓ PDF 大小: {pdf_size / 1024:.2f}KB, PNG 大小: {png_size / 1024:.2f}KB")
+            logger.info(f"✓ Kích thước PDF: {pdf_size / 1024:.2f}KB, PNG: {png_size / 1024:.2f}KB")
 
-            # 步骤 2: 提交教师信息
-            logger.info("步骤 2/4: 提交教师信息...")
+            # Bước 2: Gửi thông tin giáo viên
+            logger.info("Bước 2/4: Gửi thông tin giáo viên...")
             step2_body = {
                 'firstName': first_name,
                 'lastName': last_name,
@@ -185,27 +185,27 @@ class SheerIDVerifier:
             )
 
             if step2_status != 200:
-                raise Exception(f"步骤 2 失败 (状态码 {step2_status}): {step2_data}")
+                raise Exception(f"Bước 2 thất bại (mã {step2_status}): {step2_data}")
 
             if step2_data.get('currentStep') == 'error':
-                error_msg = ', '.join(step2_data.get('errorIds', ['Unknown error']))
-                raise Exception(f"步骤 2 错误: {error_msg}")
+                error_msg = ', '.join(step2_data.get('errorIds', ['Lỗi không xác định']))
+                raise Exception(f"Bước 2 lỗi: {error_msg}")
 
-            logger.info(f"✓ 步骤 2 完成: {step2_data.get('currentStep')}")
+            logger.info(f"✓ Bước 2 hoàn tất: {step2_data.get('currentStep')}")
             current_step = step2_data.get('currentStep', current_step)
 
-            # 步骤 3: 跳过 SSO（如果需要）
+            # Bước 3: Bỏ qua SSO (nếu cần)
             if current_step in ['sso', 'collectTeacherPersonalInfo']:
-                logger.info("步骤 3/4: 跳过 SSO 验证...")
+                logger.info("Bước 3/4: Bỏ qua xác thực SSO...")
                 step3_data, _ = self._sheerid_request(
                     'DELETE',
                     f"{SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/sso"
                 )
-                logger.info(f"✓ 步骤 3 完成: {step3_data.get('currentStep')}")
+                logger.info(f"✓ Bước 3 hoàn tất: {step3_data.get('currentStep')}")
                 current_step = step3_data.get('currentStep', current_step)
 
-            # 步骤 4: 上传文档并完成提交
-            logger.info("步骤 4/4: 请求并上传文档...")
+            # Bước 4: Tải tài liệu lên và hoàn tất gửi
+            logger.info("Bước 4/4: Yêu cầu URL tải lên và gửi tài liệu...")
             step4_body = {
                 'files': [
                     {
@@ -229,37 +229,37 @@ class SheerIDVerifier:
 
             documents = step4_data.get('documents') or []
             if len(documents) < 2:
-                raise Exception("未能获取上传 URL")
+                raise Exception("Không lấy được URL tải lên")
 
             pdf_upload_url = documents[0]['uploadUrl']
             png_upload_url = documents[1]['uploadUrl']
-            logger.info("✓ 获取上传 URL 成功")
+            logger.info("✓ Lấy URL tải lên thành công")
 
             if not self._upload_to_s3(pdf_upload_url, pdf_data, 'application/pdf'):
-                raise Exception("PDF 上传失败")
+                raise Exception("Tải PDF thất bại")
             if not self._upload_to_s3(png_upload_url, png_data, 'image/png'):
-                raise Exception("PNG 上传失败")
-            logger.info("✓ 教师证明 PDF/PNG 上传成功")
+                raise Exception("Tải PNG thất bại")
+            logger.info("✓ Tải PDF/PNG chứng minh giáo viên thành công")
 
             step6_data, _ = self._sheerid_request(
                 'POST',
                 f"{SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/completeDocUpload"
             )
-            logger.info(f"✓ 文档提交完成: {step6_data.get('currentStep')}")
+            logger.info(f"✓ Hoàn tất gửi tài liệu: {step6_data.get('currentStep')}")
             final_status = step6_data
 
-            # 不做状态轮询，直接返回等待审核
+            # Không polling trạng thái, trả về chờ duyệt
             return {
                 'success': True,
                 'pending': True,
-                'message': '文档已提交，等待审核',
+                'message': 'Tài liệu đã được gửi, đang chờ duyệt',
                 'verification_id': self.verification_id,
                 'redirect_url': final_status.get('redirectUrl'),
                 'status': final_status
             }
 
         except Exception as e:
-            logger.error(f"✗ 验证失败: {e}")
+            logger.error(f"✗ Xác thực thất bại: {e}")
             return {
                 'success': False,
                 'message': str(e),

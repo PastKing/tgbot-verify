@@ -1,6 +1,6 @@
 # SheerID Auto-Verification Bot - Deployment Guide
 
-[中文](DEPLOY.md) | English
+[Tiếng Trung](DEPLOY.md) | English
 
 This document provides detailed instructions on how to deploy the SheerID Auto-Verification Telegram Bot.
 
